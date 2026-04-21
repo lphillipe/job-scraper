@@ -1,0 +1,138 @@
+<!-- jobs/templates/jobs/results.html -->
+{% extends "jobs/base.html" %}
+
+{% block title %}{{ keywords }} — JobScraper{% endblock %}
+
+{% block extra_style %}
+<style>
+  .results-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .results-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .results-header p {
+    color: #666;
+    font-size: 0.875rem;
+    margin-top: 4px;
+  }
+
+  .job-card {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+
+  .job-card:hover { border-color: #0a66c2; }
+
+  .job-info { flex: 1; min-width: 0; }
+
+  .job-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0a66c2;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .job-company {
+    font-size: 0.875rem;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .job-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: #777;
+  }
+
+  .job-date {
+    font-size: 0.8rem;
+    color: #999;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+  }
+
+  .badge-new {
+    display: inline-block;
+    background: #e8f4e8;
+    color: #2d7a2d;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Barra de busca no topo para nova busca -->
+<form action="{% url 'jobs:search' %}" method="GET">
+  <div class="search-bar">
+    <input type="text" name="keywords" value="{{ keywords }}" placeholder="Nova busca...">
+    <input type="hidden" name="location" value="{{ location }}">
+    <button type="submit">Buscar</button>
+  </div>
+</form>
+
+<div class="results-header">
+  <h2>
+    {{ total_count }} vaga{{ total_count|pluralize:"s" }} para "{{ keywords }}"
+    {% if new_count > 0 %}
+      <span class="badge-new">{{ new_count }} nova{{ new_count|pluralize:"s" }}</span>
+    {% endif %}
+  </h2>
+  <p>{{ location }} · LinkedIn · últimos 7 dias</p>
+</div>
+
+{% if jobs %}
+  {% for job in jobs %}
+    <a class="job-card" href="{% url 'jobs:detail' job.id %}">
+      <div class="job-info">
+        <div class="job-title">{{ job.title }}</div>
+        <div class="job-company">{{ job.company }}</div>
+        <div class="job-meta">
+          {% if job.location %}<span>📍 {{ job.location }}</span>{% endif %}
+          <span>LinkedIn</span>
+        </div>
+      </div>
+      <div class="job-date">
+        {{ job.published_at|date:"d/m/Y" }}
+      </div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="empty">
+    <p>Nenhuma vaga encontrada para "{{ keywords }}".</p>
+    <p>Tente um termo diferente ou aguarde novas publicações.</p>
+  </div>
+{% endif %}
+
+{% endblock %}

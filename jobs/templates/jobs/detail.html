@@ -1,0 +1,97 @@
+<!-- jobs/templates/jobs/detail.html -->
+{% extends "jobs/base.html" %}
+
+{% block title %}{{ job.title }} — JobScraper{% endblock %}
+
+{% block extra_style %}
+<style>
+  .back-link {
+    display: inline-block;
+    color: #0a66c2;
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .back-link:hover { text-decoration: underline; }
+
+  .detail-card {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1.75rem;
+  }
+
+  .detail-card h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .detail-company {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+
+  .detail-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: #666;
+    padding: 1rem 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 1.25rem;
+  }
+
+  .apply-btn {
+    display: inline-block;
+    background: #0a66c2;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-top: 1rem;
+  }
+
+  .apply-btn:hover { background: #0958a8; }
+
+  .description {
+    font-size: 0.9rem;
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="javascript:history.back()">← Voltar</a>
+
+  <div class="detail-card">
+    <h1>{{ job.title }}</h1>
+    <div class="detail-company">{{ job.company }}</div>
+
+    <div class="detail-meta">
+      {% if job.location %}<span>📍 {{ job.location }}</span>{% endif %}
+      <span>🗓 {{ job.published_at|date:"d/m/Y" }}</span>
+      <span>LinkedIn</span>
+    </div>
+
+    {% if job.description %}
+      <div class="description">{{ job.description }}</div>
+    {% else %}
+      <p style="color:#999;font-size:0.875rem;margin-bottom:1rem">
+        Descrição não disponível — clique em "Ver vaga" para acessar o conteúdo completo.
+      </p>
+    {% endif %}
+
+    <a class="apply-btn" href="{{ job.url }}" target="_blank" rel="noopener">
+      Ver vaga no LinkedIn →
+    </a>
+  </div>
+{% endblock %}

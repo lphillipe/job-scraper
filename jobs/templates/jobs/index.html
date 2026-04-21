@@ -1,0 +1,89 @@
+<!-- jobs/templates/jobs/index.html -->
+{% extends "jobs/base.html" %}
+
+{% block title %}JobScraper — Busca de Vagas{% endblock %}
+
+{% block extra_style %}
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 0 2rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero p {
+    color: #666;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+  }
+
+  .hero .search-bar {
+    max-width: 600px;
+    margin: 0 auto 1rem;
+  }
+
+  .location-input {
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .location-input input {
+    flex: 1;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: #1a1a1a;
+    outline: none;
+  }
+
+  .hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <h1>Encontre vagas no LinkedIn</h1>
+  <p>Vagas publicadas nos últimos 7 dias, sem precisar de conta.</p>
+
+  <form action="{% url 'jobs:search' %}" method="GET">
+    <div class="search-bar">
+      <input
+        type="text"
+        name="keywords"
+        placeholder="Ex: desenvolvedor Python, UX designer, analista de dados..."
+        autofocus
+        required
+      >
+      <button type="submit">Buscar</button>
+    </div>
+    <div class="location-input">
+      <input
+        type="text"
+        name="location"
+        placeholder="Localização (padrão: Brazil)"
+        value="Brazil"
+      >
+    </div>
+  </form>
+
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+
+  <p class="hint">Os resultados são salvos localmente — buscas repetidas são instantâneas.</p>
+</div>
+{% endblock %}
