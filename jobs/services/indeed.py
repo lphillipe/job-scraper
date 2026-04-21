@@ -1,114 +1,139 @@
 # jobs/services/indeed.py
 
-import requests
+from curl_cffi import requests
 from bs4 import BeautifulSoup
-from dateutil import parser as dateparser
-from datetime import timedelta, timezone
+from datetime import timedelta
 from django.utils import timezone as django_timezone
 from urllib.parse import quote
 import logging
+import time
+import re
 
 logger = logging.getLogger(__name__)
 
-HEADERS = {
-    'User-Agent': (
-        'Mozilla/5.0 (X11; Linux x86_64) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/120.0.0.0 Safari/537.36'
-    ),
-    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-}
+
+def fetch_jobs_from_indeed(keywords: str, location: str = '') -> list[dict]:
+    all_jobs = []
+
+    for page in range(0, 3):
+        jobs = _fetch_page(keywords, location, page)
+        all_jobs.extend(jobs)
+
+        if len(jobs) < 10:
+            break
+
+        time.sleep(2)
+
+    logger.info(f'Indeed retornou {len(all_jobs)} vagas para "{keywords}"')
+    return all_jobs
 
 
-def fetch_jobs_from_indeed(keywords: str, location: str = 'Brazil') -> list[dict]:
-    """
-    Busca vagas no Indeed via RSS público.
-    Ainda funciona sem autenticação.
-    """
+def _fetch_page(keywords: str, location: str, page: int) -> list[dict]:
     url = (
-        f'https://br.indeed.com/rss'
+        f'https://br.indeed.com/jobs'
         f'?q={quote(keywords)}'
         f'&l={quote(location)}'
-        f'&fromage=7'  # últimos 7 dias
+        f'&fromage=7'
         f'&sort=date'
+        f'&start={page * 10}'
     )
 
     try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
+        # impersonate="chrome120" replica o handshake TLS do Chrome
+        # é isso que derruba o 403 na maioria dos casos
+        response = requests.get(url, impersonate="chrome120", timeout=15)
         response.raise_for_status()
-    except requests.RequestException as e:
-        logger.error(f'Erro ao buscar Indeed RSS: {e}')
+    except Exception as e:
+        logger.error(f'Erro ao buscar Indeed (página {page}): {e}')
         return []
 
-    jobs = _parse_rss(response.text)
-    logger.info(f'Indeed retornou {len(jobs)} vagas para "{keywords}"')
-    return jobs
+    return _parse_page(response.text)
 
 
-def _parse_rss(xml_content: str) -> list[dict]:
-    soup = BeautifulSoup(xml_content, 'xml')
-    items = soup.find_all('item')
+def _parse_page(html: str) -> list[dict]:
+    soup = BeautifulSoup(html, 'lxml')
     jobs = []
     cutoff = django_timezone.now() - timedelta(days=7)
 
-    for item in items:
+    cards = soup.find_all('div', attrs={'data-jk': True})
+
+    if not cards:
+        cards = soup.find_all('td', class_='resultContent')
+        logger.warning(f'Seletor principal vazio, fallback retornou {len(cards)}')
+
+    for card in cards:
         try:
-            title_tag = item.find('title')
-            link_tag = item.find('link')
-            pub_date_tag = item.find('pubDate')
-            desc_tag = item.find('description')
-
-            if not title_tag or not link_tag:
+            title_tag = (
+                card.find('h2', class_=re.compile(r'jobTitle', re.I)) or
+                card.find('a', attrs={'data-jk': True})
+            )
+            if not title_tag:
                 continue
 
-            # Título vem como "Cargo - Empresa"
-            title_parts = title_tag.text.strip().split(' - ', 1)
-            title = title_parts[0].strip()
-            company = title_parts[1].strip() if len(title_parts) > 1 else ''
+            title = title_tag.get_text(strip=True)
+            title = re.sub(r'^(novo|new)\s+', '', title, flags=re.I).strip()
 
-            url = link_tag.text.strip() if link_tag.text else ''
-            if not url:
-                url = item.find('guid').text.strip() if item.find('guid') else ''
-            if not url:
+            job_key = card.get('data-jk')
+            if not job_key:
+                jk_tag = card.find(attrs={'data-jk': True})
+                job_key = jk_tag.get('data-jk') if jk_tag else None
+            if not job_key:
                 continue
 
-            # Remove parâmetros de tracking
-            url = url.split('?')[0] if '?' in url else url
+            url = f'https://br.indeed.com/viewjob?jk={job_key}'
 
-            # Data
-            if pub_date_tag:
-                published_at = dateparser.parse(pub_date_tag.text)
-                if published_at and published_at.tzinfo is None:
-                    published_at = published_at.replace(tzinfo=timezone.utc)
-            else:
-                published_at = django_timezone.now()
+            company_tag = (
+                card.find('span', attrs={'data-testid': 'company-name'}) or
+                card.find('a', attrs={'data-tn-element': 'companyName'}) or
+                card.find(class_=re.compile(r'companyName', re.I))
+            )
+            company = company_tag.get_text(strip=True) if company_tag else ''
 
-            if published_at and published_at < cutoff:
+            location_tag = (
+                card.find('div', attrs={'data-testid': 'text-location'}) or
+                card.find(class_=re.compile(r'companyLocation', re.I))
+            )
+            location_str = location_tag.get_text(strip=True) if location_tag else ''
+
+            date_tag = (
+                card.find('span', attrs={'data-testid': 'myJobsStateDate'}) or
+                card.find(class_=re.compile(r'date|posted', re.I))
+            )
+            published_at = _parse_relative_date(
+                date_tag.get_text(strip=True) if date_tag else ''
+            )
+
+            if published_at < cutoff:
                 continue
-
-            # Localização vem na description em alguns casos
-            description = ''
-            location_str = ''
-            if desc_tag:
-                desc_soup = BeautifulSoup(desc_tag.text, 'html.parser')
-                description = desc_soup.get_text(separator=' ').strip()
-                # Indeed inclui localização na descrição: "Local: São Paulo, SP"
-                for line in description.split('\n'):
-                    if 'local:' in line.lower() or 'location:' in line.lower():
-                        location_str = line.split(':', 1)[-1].strip()
-                        break
 
             jobs.append({
                 'title': title,
                 'company': company,
-                'location': location_str or location,
-                'description': description,
+                'location': location_str,
+                'description': '',
                 'url': url,
-                'published_at': published_at or django_timezone.now(),
+                'published_at': published_at,
             })
 
         except Exception as e:
-            logger.warning(f'Erro ao parsear item Indeed: {e}')
+            logger.warning(f'Erro ao parsear card Indeed: {e}')
             continue
 
     return jobs
+
+
+def _parse_relative_date(text: str):
+    now = django_timezone.now()
+    text = text.lower().strip()
+
+    if not text or 'hoje' in text or 'today' in text or 'agora' in text:
+        return now
+    if 'ontem' in text or 'yesterday' in text:
+        return now - timedelta(days=1)
+
+    match = re.search(r'(\d+)', text)
+    if match:
+        days = int(match.group(1))
+        return now - timedelta(days=days)
+
+    return now
