@@ -1,31 +1,128 @@
-<!-- jobs/templates/jobs/results.html -->
 {% extends "jobs/base.html" %}
-
 {% block title %}{{ keywords }} — JobScraper{% endblock %}
 
 {% block extra_style %}
 <style>
-  .results-header {
-    margin-bottom: 1.25rem;
+  .layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+
+  .sidebar {
+    width: 210px;
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1.25rem;
+    position: sticky;
+    top: 1rem;
   }
+
+  .sidebar h3 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #aaa;
+    margin-bottom: 0.6rem;
+  }
+
+  .sidebar select,
+  .sidebar input[type="text"] {
+    width: 100%;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    color: #1a1a1a;
+    background: #fafafa;
+    outline: none;
+    margin-bottom: 1rem;
+  }
+
+  .sidebar select:focus,
+  .sidebar input:focus { border-color: #0a66c2; }
+
+  .source-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+
+  .source-list label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: #333;
+  }
+
+  .apply-btn {
+    width: 100%;
+    background: #0a66c2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .apply-btn:hover { background: #0958a8; }
+
+  .clear-link {
+    display: block;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: #999;
+    text-decoration: none;
+  }
+
+  .clear-link:hover { color: #333; }
+
+  .results-area { flex: 1; min-width: 0; }
+
+  .results-header { margin-bottom: 1rem; }
 
   .results-header h2 {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  .results-header p {
-    color: #666;
-    font-size: 0.875rem;
-    margin-top: 4px;
+  .results-header p { color: #666; font-size: 0.85rem; margin-top: 4px; }
+
+  .source-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+  .source-pill {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+
+  .source-pill.linkedin  { background: #e8f0fb; color: #0a66c2; }
+  .source-pill.indeed    { background: #eaf0fb; color: #2557a7; }
+
+  .badge-new {
+    background: #e8f4e8;
+    color: #2d7a2d;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
   }
 
   .job-card {
     background: #fff;
     border: 1px solid #e5e5e5;
     border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -33,106 +130,174 @@
     text-decoration: none;
     color: inherit;
     transition: border-color 0.15s;
-    cursor: pointer;
   }
 
   .job-card:hover { border-color: #0a66c2; }
-
   .job-info { flex: 1; min-width: 0; }
 
   .job-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: #0a66c2;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .job-company {
-    font-size: 0.875rem;
-    color: #333;
-    margin-bottom: 4px;
-  }
+  .job-company { font-size: 0.85rem; color: #333; margin-bottom: 4px; }
 
   .job-meta {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: #777;
   }
 
-  .job-date {
-    font-size: 0.8rem;
-    color: #999;
-    white-space: nowrap;
+  .job-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
     flex-shrink: 0;
   }
 
-  .empty {
-    text-align: center;
-    padding: 3rem;
-    color: #666;
+  .job-date { font-size: 0.75rem; color: #aaa; }
+
+  .badge-source {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 500;
   }
 
-  .badge-new {
-    display: inline-block;
-    background: #e8f4e8;
-    color: #2d7a2d;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 999px;
-    margin-left: 6px;
-    vertical-align: middle;
-  }
+  .badge-linkedin { background: #e8f0fb; color: #0a66c2; }
+  .badge-indeed   { background: #eaf0fb; color: #2557a7; }
+
+  .empty { text-align: center; padding: 3rem; color: #666; font-size: 0.9rem; }
 </style>
 {% endblock %}
 
 {% block content %}
+<form action="{% url 'jobs:search' %}" method="GET" id="search-form">
+  <input type="hidden" name="keywords" value="{{ keywords }}">
+  <input type="hidden" name="location" value="{{ location }}">
 
-<!-- Barra de busca no topo para nova busca -->
-<form action="{% url 'jobs:search' %}" method="GET">
-  <div class="search-bar">
-    <input type="text" name="keywords" value="{{ keywords }}" placeholder="Nova busca...">
-    <input type="hidden" name="location" value="{{ location }}">
+  <!-- Barra de nova busca -->
+  <div class="search-bar" style="margin-bottom:1.5rem">
+    <input
+      type="text"
+      id="keywords-input"
+      placeholder="Nova busca..."
+      value="{{ keywords }}"
+      onchange="document.querySelector('[name=keywords]').value=this.value"
+    >
     <button type="submit">Buscar</button>
   </div>
-</form>
 
-<div class="results-header">
-  <h2>
-    {{ total_count }} vaga{{ total_count|pluralize:"s" }} para "{{ keywords }}"
-    {% if new_count > 0 %}
-      <span class="badge-new">{{ new_count }} nova{{ new_count|pluralize:"s" }}</span>
-    {% endif %}
-  </h2>
-  <p>{{ location }} · LinkedIn · últimos 7 dias</p>
-</div>
+  <div class="layout">
 
-{% if jobs %}
-  {% for job in jobs %}
-    <a class="job-card" href="{% url 'jobs:detail' job.id %}">
-      <div class="job-info">
-        <div class="job-title">{{ job.title }}</div>
-        <div class="job-company">{{ job.company }}</div>
-        <div class="job-meta">
-          {% if job.location %}<span>📍 {{ job.location }}</span>{% endif %}
-          <span>LinkedIn</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <h3>Localização</h3>
+      <select name="state" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option value="remoto" {% if state_filter == 'remoto' %}selected{% endif %}>
+          🏠 Remoto
+        </option>
+        <optgroup label="Estados">
+          {% for estado in estados %}
+            {% if estado != 'Remoto' %}
+              <option value="{{ estado }}"
+                {% if state_filter == estado %}selected{% endif %}>
+                {{ estado }}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </optgroup>
+      </select>
+
+      <h3>Plataformas</h3>
+      <div class="source-list">
+        {% for source in available_sources %}
+          <label>
+            <input
+              type="checkbox"
+              name="sources"
+              value="{{ source }}"
+              {% if source in selected_sources %}checked{% endif %}
+              onchange="this.form.submit()"
+            >
+            {{ source|title }}
+          </label>
+        {% endfor %}
+      </div>
+
+      {% if state_filter or selected_sources|length != available_sources|length %}
+        <a class="clear-link" href="{% url 'jobs:search' %}?keywords={{ keywords }}&location={{ location }}">
+          Limpar filtros
+        </a>
+      {% endif %}
+
+    </aside>
+
+    <!-- Resultados -->
+    <div class="results-area">
+      <div class="results-header">
+        <h2>
+          {{ total_count }} vaga{{ total_count|pluralize:"s" }}
+          {% if new_count > 0 %}
+            <span class="badge-new">{{ new_count }} nova{{ new_count|pluralize:"s" }}</span>
+          {% endif %}
+        </h2>
+        <p>
+          "{{ keywords }}"
+          {% if state_filter %} · {{ state_filter }}{% endif %}
+          · últimos 7 dias
+        </p>
+        <div class="source-summary">
+          {% for source, count in by_source.items %}
+            {% if count > 0 %}
+              <span class="source-pill {{ source }}">
+                {{ source|title }}: {{ count }}
+              </span>
+            {% endif %}
+          {% endfor %}
         </div>
       </div>
-      <div class="job-date">
-        {{ job.published_at|date:"d/m/Y" }}
-      </div>
-    </a>
-  {% endfor %}
-{% else %}
-  <div class="empty">
-    <p>Nenhuma vaga encontrada para "{{ keywords }}".</p>
-    <p>Tente um termo diferente ou aguarde novas publicações.</p>
-  </div>
-{% endif %}
 
+      {% if jobs %}
+        {% for job in jobs %}
+          <a class="job-card" href="{% url 'jobs:detail' job.id %}">
+            <div class="job-info">
+              <div class="job-title">{{ job.title }}</div>
+              <div class="job-company">{{ job.company }}</div>
+              <div class="job-meta">
+                {% if job.location %}<span>📍 {{ job.location }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="job-right">
+              <span class="job-date">{{ job.published_at|date:"d/m/Y" }}</span>
+              <span class="badge-source badge-{{ job.source }}">
+                {{ job.get_source_display }}
+              </span>
+            </div>
+          </a>
+        {% endfor %}
+      {% else %}
+        <div class="empty">
+          <p>Nenhuma vaga encontrada para "{{ keywords }}".</p>
+          {% if state_filter %}
+            <p style="margin-top:8px">
+              Tente remover o filtro de localização.
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</form>
 {% endblock %}

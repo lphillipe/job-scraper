@@ -1,89 +1,180 @@
-<!-- jobs/templates/jobs/index.html -->
 {% extends "jobs/base.html" %}
-
 {% block title %}JobScraper — Busca de Vagas{% endblock %}
 
 {% block extra_style %}
 <style>
   .hero {
-    text-align: center;
-    padding: 4rem 0 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 1rem 2rem;
   }
 
   .hero h1 {
     font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    text-align: center;
   }
 
   .hero p {
     color: #666;
+    font-size: 0.95rem;
     margin-bottom: 2rem;
-    font-size: 1rem;
+    text-align: center;
   }
 
-  .hero .search-bar {
-    max-width: 600px;
-    margin: 0 auto 1rem;
+  .search-form {
+    width: 100%;
+    max-width: 620px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .location-input {
-    max-width: 600px;
-    margin: 0 auto;
+  .search-row {
+    display: flex;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .search-row input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    background: transparent;
+    color: #1a1a1a;
+  }
+
+  .search-row input::placeholder { color: #aaa; }
+
+  .search-row button {
+    background: #0a66c2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 22px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .search-row button:hover { background: #0958a8; }
+
+  .filters-row {
     display: flex;
     gap: 8px;
   }
 
-  .location-input input {
+  .filters-row select,
+  .filters-row input[type="text"] {
     flex: 1;
     border: 1px solid #e5e5e5;
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    background: #fff;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.875rem;
     color: #1a1a1a;
+    background: #fff;
     outline: none;
   }
 
+  .filters-row select:focus,
+  .filters-row input:focus { border-color: #0a66c2; }
+
+  .sources-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .sources-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: #444;
+    cursor: pointer;
+  }
+
   .hint {
+    font-size: 0.78rem;
+    color: #aaa;
     text-align: center;
-    font-size: 0.8rem;
-    color: #999;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .error {
+    background: #fff0f0;
+    border: 1px solid #fcc;
+    color: #c00;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    width: 100%;
+    max-width: 620px;
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="hero">
-  <h1>Encontre vagas no LinkedIn</h1>
-  <p>Vagas publicadas nos últimos 7 dias, sem precisar de conta.</p>
-
-  <form action="{% url 'jobs:search' %}" method="GET">
-    <div class="search-bar">
-      <input
-        type="text"
-        name="keywords"
-        placeholder="Ex: desenvolvedor Python, UX designer, analista de dados..."
-        autofocus
-        required
-      >
-      <button type="submit">Buscar</button>
-    </div>
-    <div class="location-input">
-      <input
-        type="text"
-        name="location"
-        placeholder="Localização (padrão: Brazil)"
-        value="Brazil"
-      >
-    </div>
-  </form>
+  <h1>Busca de Vagas</h1>
+  <p>LinkedIn e Indeed · vagas dos últimos 7 dias</p>
 
   {% if error %}
     <p class="error">{{ error }}</p>
   {% endif %}
 
-  <p class="hint">Os resultados são salvos localmente — buscas repetidas são instantâneas.</p>
+  <form class="search-form" action="{% url 'jobs:search' %}" method="GET">
+
+    <div class="search-row">
+      <input
+        type="text"
+        name="keywords"
+        placeholder="Cargo, tecnologia ou empresa..."
+        autofocus
+        required
+      >
+      <button type="submit">Buscar</button>
+    </div>
+
+    <div class="filters-row">
+      <input
+        type="text"
+        name="location"
+        placeholder="Cidade ou estado (ex: São Paulo)"
+        value=""
+      >
+      <select name="state">
+        <option value="">Qualquer localização</option>
+        <option value="remoto">🏠 Remoto</option>
+        <optgroup label="Estados">
+          {% for estado in estados %}
+            {% if estado != 'Remoto' %}
+              <option value="{{ estado }}">{{ estado }}</option>
+            {% endif %}
+          {% endfor %}
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="sources-row">
+      <span style="font-size:0.8rem;color:#999;align-self:center">Plataformas:</span>
+      <label>
+        <input type="checkbox" name="sources" value="linkedin" checked> LinkedIn
+      </label>
+      <label>
+        <input type="checkbox" name="sources" value="indeed" checked> Indeed
+      </label>
+    </div>
+
+  </form>
+
+  <p class="hint">Resultados salvos localmente — buscas repetidas são instantâneas.</p>
 </div>
 {% endblock %}

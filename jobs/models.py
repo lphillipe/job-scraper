@@ -7,9 +7,7 @@ class Job(models.Model):
 
     class Source(models.TextChoices):
         LINKEDIN = 'linkedin', 'LinkedIn'
-        GLASSDOOR = 'glassdoor', 'Glassdoor'
         INDEED = 'indeed', 'Indeed'
-        VAGAS = 'vagas', 'Vagas.com.br'
 
     # Informações principais da vaga
     title = models.CharField(max_length=255)
